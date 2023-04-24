@@ -6,7 +6,7 @@ const Course = ({courses}) => {
     return (
       <div>
         {courses.map((course) =>
-          <div>
+          <div key={course.id}>
             <Header course={course.name} />
             <Content parts={course.parts} />   
             <Total parts={course.parts} />
