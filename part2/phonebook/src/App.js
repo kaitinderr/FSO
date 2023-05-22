@@ -1,18 +1,26 @@
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
-import { useState } from 'react'
+import Notification from './components/Notification'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import personService from './services/people'
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456', id: 1 },
-    { name: 'Ada Lovelace', number: '39-44-5323523', id: 2 },
-    { name: 'Dan Abramov', number: '12-43-234345', id: 3 },
-    { name: 'Mary Poppendieck', number: '39-23-6423122', id: 4 }
-  ])
+  const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filtered, setFiltered] = useState([...persons])
+  const [addMessage, setAddMessage] = useState('')
+
+  useEffect(() => {
+    personService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
+        setFiltered(initialPersons)
+      })
+  }, [])
 
   const addPerson = (event) => {
     event.preventDefault();
@@ -22,13 +30,32 @@ const App = () => {
         number: newNumber,
         id: persons.length + 1,
       }
-      setPersons(persons.concat(personObject))
-      setNewName('')
-      setNewNumber('')
-      setFiltered(persons.concat(personObject))
+      personService
+      .create(personObject)
+      .then(returnedPerson => {
+        setPersons(persons.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
+        setFiltered(persons.concat(returnedPerson))
+        setAddMessage('Added ' + returnedPerson.name)
+        setTimeout(() => {
+          setAddMessage(null)
+        }, 5000)
+      })
     } else {
       alert(`${newName} is already added to phonebook`)
     }
+  }
+
+  const removePerson = id => {
+    const filteredPerson = persons.filter(person => person.id === id)
+    if (window.confirm(`Delete ${filteredPerson.name}?`)) {
+      personService
+        .remove(id)
+        .then(setPersons(persons.filter(person => person.id !== id)))
+        .then(setFiltered(filtered.filter(person => person.id !== id)))
+    }
+
   }
     
   const handleNameChange = (event) => {
@@ -49,6 +76,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+        <Notification message={addMessage}/>
         <Filter handleFilterChange={handleFilterChange}/>
       <h2>add a new</h2>
         <PersonForm 
@@ -59,7 +87,7 @@ const App = () => {
           handleNumberChange={handleNumberChange}
         />
       <h2>Numbers</h2>
-        <Persons filtered={filtered} />
+        <Persons filtered={filtered} removePerson={removePerson}/>
     </div>
   )
 }
